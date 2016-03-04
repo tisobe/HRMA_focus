@@ -6,7 +6,7 @@
 #                                                                                               #
 #               author: t. isobe (tisobe@cfa.harvard.edu)                                       #
 #                                                                                               #
-#               last update: Nov 24, 2015                                                       #
+#               last update: Mar 04, 2016                                                       #
 #                                                                                               #
 #################################################################################################
 
@@ -25,7 +25,7 @@ import time
 #
 from Ska.Shell import getenv, bash
 
-ascdsenv = getenv('source /home/ascds/.ascrc -r release', shell='tcsh')
+ascdsenv = getenv('source /home/ascds/.ascrc -r release; source /home/mta/bin/reset_param', shell='tcsh')
 #
 #--- reading directory list
 #
@@ -75,6 +75,9 @@ def extract_data(start, stop):
             stio    ---- stop time in the format of mm/dd/yy
     output: acis*evt2.fits.gz, hrc*evt2.fits.gz
     """
+
+    os.system('rm -rf param')
+    os.system('mkdir param')
 #
 #--- check whether previous fits files are still around, and if so, remove them
 #
@@ -137,7 +140,7 @@ def set_interval():
     if day < 10:
         lyear = year
         lmon  = mon - 1
-        if lmom < 1:
+        if lmon < 1:
             lmon  = 12
             lyear -= 1
 
@@ -219,7 +222,9 @@ def create_run_script():
     data = [line.strip() for line in f.readlines()]
     f.close()
 
-    fo   = open('./run_script', 'w')
+    cmd1 = "/usr/bin/env PERL5LIB="
+    cmd2 =  ' run_script > /dev/null'
+    bcmd = cmd1 + cmd2
 
     for ent in data:
         ent2 = ent.replace('evt', 'src')
@@ -227,12 +232,20 @@ def create_run_script():
         line = "pset celldetect infile=" + ent + "\n"
         line = line + "pset celldetect outfile=" + ent2 + "\n"
         line = line + "celldetect mode=h\n"
+        fo   = open('./run_script', 'w')
         fo.write(line)
 
-    fo.close()
+        fo.close()
+        cmd = 'chmod 755 ./run_script'
+        os.system(cmd)
+#
+#--- run celldetect script
+#
+        try:
+            bash(bcmd,  env=ascdsenv)
+        except:
+            pass
 
-    cmd = 'chmod 755 ./run_script'
-    os.system(cmd)
 
 #-----------------------------------------------------------------------------------------
 #-- run_idl_scripts:  run cell detect script list and then analyze the data and make plots 
@@ -244,15 +257,6 @@ def run_idl_scripts():
     input:  none but just run: "./run_script"
     output: *src2.fits
     """
-#
-#--- run celldetect script
-#
-
-    cmd1 = "/usr/bin/env PERL5LIB="
-    cmd2 =  ' run_script > /dev/null'
-    cmd  = cmd1 + cmd2
-
-    bash(cmd,  env=ascdsenv)
     mcf.rm_file(zspace)
 #
 #--- run the rest of the idl scripts
@@ -260,7 +264,7 @@ def run_idl_scripts():
     cmd = 'rm -rf *_evt2.fits.gz'
     os.system(cmd)
 
-    cmd = 'ls *src2.fits* > src_mon.list'
+    cmd = 'ls *src2.fits* > src_mon.lst'
     os.system(cmd)
 
     cmd = 'idl ' + tdir + 'Scripts/run'
