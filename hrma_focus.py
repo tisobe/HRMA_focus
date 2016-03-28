@@ -6,7 +6,7 @@
 #                                                                                               #
 #               author: t. isobe (tisobe@cfa.harvard.edu)                                       #
 #                                                                                               #
-#               last update: Mar 04, 2016                                                       #
+#               last update: Mar 28, 2016                                                       #
 #                                                                                               #
 #################################################################################################
 
@@ -63,6 +63,8 @@ rtail    = int(10000 * random.random())       #---- put a romdom # tail so that 
 zspace   = '/tmp/zspace' + str(rtail)
 
 tdir     = '/data/mta4/www/DAILY/mta_src/'
+
+idir     = '/usr/local/bin/'
 
 #-----------------------------------------------------------------------------------------
 #-- extract_data: extract data to compute HRMA focus plots                              --
@@ -215,12 +217,24 @@ def create_run_script():
     output: ./run_script    ---- cell detect command list file
     """
 
+
     cmd = 'ls *.fits.gz > ' + zspace
     os.system(cmd)
     
     f    = open(zspace, 'r')
     data = [line.strip() for line in f.readlines()]
     f.close()
+
+    cmd = 'ls acisf5*.fits.gz hrcf5*.fits.gz  > ' + zspace
+    os.system(cmd)
+    
+    f    = open(zspace, 'r')
+    comp = [line.strip() for line in f.readlines()]
+    f.close()
+
+
+    list3 = [item for item in data if item not in comp]
+    data  = list3
 
     cmd1 = "/usr/bin/env PERL5LIB="
     cmd2 =  ' run_script > /dev/null'
@@ -267,13 +281,13 @@ def run_idl_scripts():
     cmd = 'ls *src2.fits* > src_mon.lst'
     os.system(cmd)
 
-    cmd = 'idl ' + tdir + 'Scripts/run'
+    cmd =  idir + 'idl ' + tdir + 'Scripts/run'
     os.system(cmd)
 
     cmd = 'cat src_mon.tab >> src_mon.txt'        #----!!! move sc_mon.txt to house_keeping !!!
     os.system(cmd)
 
-    cmd = 'idl ' + tdir + 'Scripts/run_txt'
+    cmd = idir + 'idl ' + tdir + 'Scripts/run_txt'
     os.system(cmd)
 
     cmd = 'mv -f *.html *.gif ' + tdir + '/.'
