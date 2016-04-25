@@ -213,6 +213,10 @@ for i = 0, numobs-1 do begin
       xpsf = xravg/xpsfratio
       xrnd = xrmaj/xrmin
     endif
+;
+;--- the following line added 4/25/16 (ti)
+;
+    if (n_elements(array) le 5) then continue
   
     for j = 0, n_elements(array)-1  do begin
       total_src = total_src + 1

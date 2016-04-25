@@ -6,7 +6,7 @@
 #                                                                                               #
 #               author: t. isobe (tisobe@cfa.harvard.edu)                                       #
 #                                                                                               #
-#               last update: Mar 28, 2016                                                       #
+#               last update: Apr 25, 2016                                                       #
 #                                                                                               #
 #################################################################################################
 
@@ -19,6 +19,7 @@ import random
 import operator
 import math
 import numpy
+import astropy.io.fits  as pyfits
 import time
 #
 #--- from ska
@@ -241,24 +242,30 @@ def create_run_script():
     bcmd = cmd1 + cmd2
 
     for ent in data:
-        ent2 = ent.replace('evt', 'src')
-        ent2 = ent2.replace('.gz', '')
-        line = "pset celldetect infile=" + ent + "\n"
-        line = line + "pset celldetect outfile=" + ent2 + "\n"
-        line = line + "celldetect mode=h\n"
-        fo   = open('./run_script', 'w')
-        fo.write(line)
+#
+#--- handle only none grating observations
+#
+        grating = read_header_value(ent, 'GRATING')
 
-        fo.close()
-        cmd = 'chmod 755 ./run_script'
-        os.system(cmd)
+        if grating == 'NONE':
+            ent2 = ent.replace('evt', 'src')
+            ent2 = ent2.replace('.gz', '')
+            line = "pset celldetect infile=" + ent + "\n"
+            line = line + "pset celldetect outfile=" + ent2 + "\n"
+            line = line + "celldetect mode=h\n"
+            fo   = open('./run_script', 'w')
+            fo.write(line)
+    
+            fo.close()
+            cmd = 'chmod 755 ./run_script'
+            os.system(cmd)
 #
 #--- run celldetect script
 #
-        try:
-            bash(bcmd,  env=ascdsenv)
-        except:
-            pass
+            try:
+                bash(bcmd,  env=ascdsenv)
+            except:
+                pass
 
 
 #-----------------------------------------------------------------------------------------
@@ -326,6 +333,31 @@ def update_index_page():
         fo.write("\n")
 
     fo.close()
+
+#-----------------------------------------------------------------------------------------------
+#-- read_header_value: read fits header value for a given parameter name                      --
+#-----------------------------------------------------------------------------------------------
+
+def read_header_value(fits, name):
+    """
+    read fits header value for a given parameter name
+    input:  fits--- fits file name
+    name--- parameter name
+    output: val --- parameter value
+    if the parameter does not exist, reuturn "NULL"
+    """
+
+    hfits = pyfits.open(fits)
+    hdr   = hfits[1].header
+    try:
+        val   = hdr[name.lower()]
+    except:
+        val   = NULL
+    
+    hfits.close()
+    
+    return val
+
 
 #-----------------------------------------------------------------------------------------
 
